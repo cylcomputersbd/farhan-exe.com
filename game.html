@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dino Runner Game</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(to bottom, #4facfe, #00f2fe);
+            overflow: hidden;
+        }
+        canvas {
+            background: white;
+            border: 2px solid black;
+            max-width: 100%;
+        }
+        #popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+        #retry { background: red; color: white; }
+        #useKey { background: green; color: white; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="200"></canvas>
+    <div id="popup">
+        <p>Game Over!</p>
+        <button id="retry">Retry</button>
+        <button id="useKey">Use Key</button>
+    </div>
+    <script>
+        let canvas = document.getElementById("gameCanvas");
+        let ctx = canvas.getContext("2d");
+        let dinoImg = new Image();
+        dinoImg.src = 'your-dino-image-url.png';
+        let dino = { x: 50, y: 140, width: 60, height: 60, velocityY: 0, gravity: 1.5, isJumping: false };
+        let obstacles = [], keys = 0, score = 0, highScore = localStorage.getItem("highScore") || 0;
+        let gameOver = false, obstacleSpeed = 5;
+
+        function drawDino() {
+            ctx.drawImage(dinoImg, dino.x, dino.y, dino.width, dino.height);
+        }
+
+        function updateGame() {
+            if (gameOver) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            dino.y += dino.velocityY;
+            dino.velocityY += dino.gravity;
+            if (dino.y > 140) { dino.y = 140; dino.isJumping = false; }
+            
+            if (Math.random() < 0.02) {
+                let newWidth = Math.random() * 40 + 30;
+                let newHeight = Math.random() * 40 + 30;
+                obstacles.push({ x: canvas.width, y: 150, width: newWidth, height: newHeight });
+            }
+            obstacles.forEach((obstacle, index) => {
+                obstacle.x -= obstacleSpeed;
+                ctx.fillStyle = "#8B0000";
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                if (dino.x < obstacle.x + obstacle.width && dino.x + dino.width > obstacle.x && dino.y + dino.height > obstacle.y) {
+                    gameOver = true;
+                    showPopup();
+                }
+            });
+            obstacles = obstacles.filter(ob => ob.x > 0);
+            score++;
+            if (score % 300 === 0) keys++;
+            highScore = Math.max(score, highScore);
+            localStorage.setItem("highScore", highScore);
+            drawDino();
+            drawScore();
+            requestAnimationFrame(updateGame);
+        }
+
+        function drawScore() {
+            ctx.fillStyle = "black";
+            ctx.font = "20px Arial";
+            ctx.fillText("Score: " + score, 10, 20);
+            ctx.fillText("Keys: " + keys, 10, 40);
+            ctx.fillText("High Score: " + highScore, 10, 60);
+        }
+
+        document.addEventListener("keydown", function (e) {
+            if (e.code === "Space" && !dino.isJumping) {
+                dino.velocityY = -20;
+                dino.isJumping = true;
+            }
+        });
+
+        document.addEventListener("keydown", function (e) {
+            if (e.code === "ArrowUp" && !dino.isJumping) {
+                dino.velocityY = -20;
+                dino.isJumping = true;
+            }
+        });
+
+
+        document.addEventListener("touchstart", function () {
+            if (!dino.isJumping) {
+                dino.velocityY = -20;
+                dino.isJumping = true;
+            }
+        });
+
+        function showPopup() {
+            let popup = document.getElementById("popup");
+            let useKeyBtn = document.getElementById("useKey");
+            useKeyBtn.style.display = keys > 0 ? "block" : "none";
+            popup.style.display = "block";
+        }
+
+        function retryGame() {
+            document.getElementById("popup").style.display = "none";
+            gameOver = false;
+            dino.y = 140;
+            obstacles = [];
+            score = 0;
+            obstacleSpeed = 5;
+            updateGame();
+        }
+
+        function useKey() {
+            if (keys > 0) {
+                keys--;
+                document.getElementById("popup").style.display = "none";
+                gameOver = false;
+                updateGame();
+            }
+        }
+
+        document.getElementById("retry").addEventListener("click", retryGame);
+        document.getElementById("useKey").addEventListener("click", useKey);
+        updateGame();
+    </script>
+</body>
+</html>
